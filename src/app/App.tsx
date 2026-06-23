@@ -59,6 +59,17 @@ function isThisWeek(dateStr: string) {
   weekAgo.setDate(now.getDate() - 7);
   return d >= weekAgo && d <= now;
 }
+export function bucketCallsByHour(calls: Call[]): { hour: string; calls: number }[] {
+  const counts = new Array(24).fill(0) as number[];
+  for (const call of calls) {
+    if (call.dateTime) counts[new Date(call.dateTime).getHours()]++;
+  }
+  return counts.map((count, h) => ({
+    hour: h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`,
+    calls: count,
+  }));
+}
+
 function memberName(id?: string) {
   if (!id) return "Unassigned";
   return TEAM_MEMBERS.find(m => m.id === id)?.name ?? "Staff Member";
@@ -238,6 +249,8 @@ function OverviewScreen({ locId }: { locId: string }) {
   const total = filtered.length;
   const convRate = total > 0 ? Math.round((filtered.filter(l => l.status === "Booked" || l.status === "Completed").length / total) * 100) : 0;
 
+  const callsByHour = useMemo(() => bucketCallsByHour(filteredCalls), [filteredCalls]);
+
   const leadsOverTime = useMemo(() => {
     const days: { date: string; leads: number }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -319,6 +332,23 @@ function OverviewScreen({ locId }: { locId: string }) {
             </>
           ) : <EmptyState message="No leads yet" />}
         </div>
+      </div>
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Calls by Time of Day</h3>
+        {filteredCalls.length === 0 ? (
+          <EmptyState message="No calls in this range yet." />
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={callsByHour} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <defs><linearGradient id="gradCalls" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.15} /><stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} /></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="hour" tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} interval={1} />
+              <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
+              <Area type="monotone" dataKey="calls" stroke="#8B5CF6" strokeWidth={2} fill="url(#gradCalls)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
