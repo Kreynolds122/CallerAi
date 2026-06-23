@@ -1,7 +1,7 @@
 export type LocationStatus = "Active" | "Pilot";
 export type LeadStatus = "New" | "Contacted" | "Booked" | "Completed" | "Lost";
 export type LeadSource = "Phone" | "Website Chat";
-export type CallOutcome = "Booked" | "Not Booked" | "Voicemail";
+export type CallOutcome = "Completed" | "Voicemail" | "No Answer" | "Failed";
 
 export interface Location {
   id: string;
@@ -37,6 +37,7 @@ export interface Call {
   locationId: string;
   dateTime: string;
   duration: number;
+  talkSeconds?: number;
   outcome: CallOutcome;
   transcript: string;
   summary: string;

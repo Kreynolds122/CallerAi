@@ -33,7 +33,8 @@ export function transformCall(row: Record<string, unknown>) {
     locationId: (row.location_id as string) ?? "",
     dateTime: (row.date_time as string) ?? (row.created_at as string),
     duration: (row.duration_minutes as number) ?? 0,
-    outcome: row.outcome as "Booked" | "Not Booked" | "Voicemail",
+    talkSeconds: row.talk_seconds as number | undefined,
+    outcome: row.outcome as "Completed" | "Voicemail" | "No Answer" | "Failed",
     transcript: (row.transcript as string) ?? "",
     summary: (row.summary as string) ?? "",
   };

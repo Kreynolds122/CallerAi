@@ -59,6 +59,12 @@ function isThisWeek(dateStr: string) {
   weekAgo.setDate(now.getDate() - 7);
   return d >= weekAgo && d <= now;
 }
+export function fmtSeconds(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export function bucketCallsByHour(calls: Call[]): { hour: string; calls: number }[] {
   const counts = new Array(24).fill(0) as number[];
   for (const call of calls) {
@@ -88,12 +94,13 @@ function StatusBadge({ status }: { status: LeadStatus }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${STATUS_STYLES[status]}`}>{status}</span>;
 }
 const OUTCOME_STYLES: Record<CallOutcome, string> = {
-  "Booked": "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-  "Not Booked": "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  "Completed": "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
   "Voicemail": "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  "No Answer": "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  "Failed": "bg-red-50 text-red-600 ring-1 ring-red-200",
 };
 function OutcomeBadge({ outcome }: { outcome: CallOutcome }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${OUTCOME_STYLES[outcome]}`}>{outcome}</span>;
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${OUTCOME_STYLES[outcome] ?? "bg-slate-100 text-slate-600 ring-1 ring-slate-200"}`}>{outcome}</span>;
 }
 function SourceBadge({ source }: { source: LeadSource }) {
   return source === "Phone"
@@ -251,6 +258,14 @@ function OverviewScreen({ locId }: { locId: string }) {
 
   const callsByHour = useMemo(() => bucketCallsByHour(filteredCalls), [filteredCalls]);
 
+  const avgTalkTime = useMemo(() => {
+    const secs = filteredCalls
+      .map(c => (typeof c.talkSeconds === "number" && c.talkSeconds > 0) ? c.talkSeconds : (typeof c.duration === "number" && c.duration > 0) ? c.duration * 60 : null)
+      .filter((s): s is number => s !== null);
+    if (secs.length === 0) return "—";
+    return fmtSeconds(Math.round(secs.reduce((a, b) => a + b, 0) / secs.length));
+  }, [filteredCalls]);
+
   const leadsOverTime = useMemo(() => {
     const days: { date: string; leads: number }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -286,7 +301,7 @@ function OverviewScreen({ locId }: { locId: string }) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {["New Leads Today","New This Week","Consultations Booked","Booking Conversion"].map(l => (
+          {["New Leads Today","New This Week","Consultations Booked","Booking Conversion","Calls","Avg Talk Time"].map(l => (
             <div key={l} className="bg-white rounded-xl p-5 shadow-sm border border-border h-24 animate-pulse"><div className="h-3 bg-slate-100 rounded w-24 mb-3" /><div className="h-7 bg-slate-100 rounded w-12" /></div>
           ))}
         </div>
@@ -306,6 +321,8 @@ function OverviewScreen({ locId }: { locId: string }) {
         <MetricCard label="New This Week" value={newThisWeek} sub="last 7 days" icon={Activity} />
         <MetricCard label="Consultations Booked" value={booked} sub="active bookings" icon={Calendar} />
         <MetricCard label="Booking Conversion" value={`${convRate}%`} sub="booked + completed / total" icon={Users} accent="bg-accent" />
+        <MetricCard label="Calls" value={filteredCalls.length} sub="total calls" icon={Phone} />
+        <MetricCard label="Avg Talk Time" value={avgTalkTime} sub="talk time per call" icon={Clock} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
@@ -617,7 +634,7 @@ function CallsScreen({ locId }: { locId: string }) {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-border flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><input className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 placeholder:text-muted-foreground" placeholder="Search calls…" value={search} onChange={e => setSearch(e.target.value)} /></div>
         <select value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value)} className="px-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground">
-          <option value="all">All Outcomes</option><option value="Booked">Booked</option><option value="Not Booked">Not Booked</option><option value="Voicemail">Voicemail</option>
+          <option value="all">All Outcomes</option><option value="Completed">Completed</option><option value="Voicemail">Voicemail</option><option value="No Answer">No Answer</option><option value="Failed">Failed</option>
         </select>
         <span className="text-sm text-muted-foreground ml-auto">{filtered.length} calls</span>
       </div>
@@ -754,7 +771,7 @@ const PROJECT_REF = "nggeejxwxdoirjfmwwxk";
 const BASE_URL = `https://${PROJECT_REF}.supabase.co/functions/v1`;
 
 const LEAD_CONTRACT = JSON.stringify({ location_id: "uuid-from-locations-table", source: "Phone | Website Chat", full_name: "Jane Doe", phone: "+14155550100", email: "jane@example.com", reason: "Lower back pain after surgery", preferred_time: "Weekday mornings", webhook_secret: "your-shared-secret" }, null, 2);
-const CALL_CONTRACT = JSON.stringify({ lead_id: "uuid (omit to auto-create lead)", location_id: "uuid-from-locations-table", date_time: "2026-06-22T10:00:00Z", duration_minutes: 5, outcome: "Booked | Not Booked | Voicemail", transcript: "Full call transcript…", summary: "AI summary…", appointment_datetime: "2026-06-25T10:00:00Z", webhook_secret: "your-shared-secret" }, null, 2);
+const CALL_CONTRACT = JSON.stringify({ lead_id: "uuid (omit to auto-create lead)", location_id: "uuid-from-locations-table", vapi_call_id: "vapi-generated-uuid", date_time: "2026-06-22T10:00:00Z", duration_minutes: 5, talk_seconds: 142, outcome: "Completed | Voicemail | No Answer | Failed", transcript: "Full call transcript…", summary: "AI summary…", webhook_secret: "your-shared-secret" }, null, 2);
 const CHAT_CONTRACT = JSON.stringify({ lead_id: "uuid (omit to auto-create lead)", location_id: "uuid-from-locations-table", visitor_name: "Jane Doe", visitor_phone: "+14155550100", visitor_email: "jane@example.com", reason: "Need PT for knee", date_time: "2026-06-22T10:00:00Z", transcript: "Visitor: Hi…\nAssistant: Hello…", summary: "Visitor inquired about…", webhook_secret: "your-shared-secret" }, null, 2);
 
 const SQL_SCHEMA = `-- Run in: Supabase SQL Editor → New Query → Run
@@ -782,7 +799,8 @@ CREATE TABLE IF NOT EXISTS calls (
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
   location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
   date_time TIMESTAMPTZ, duration_minutes INTEGER,
-  outcome TEXT CHECK (outcome IN ('Booked','Not Booked','Voicemail')),
+  talk_seconds INTEGER, vapi_call_id TEXT UNIQUE,
+  outcome TEXT CHECK (outcome IN ('Completed','Voicemail','No Answer','Failed')),
   transcript TEXT, summary TEXT, created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS chats (
