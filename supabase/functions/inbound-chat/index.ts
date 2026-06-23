@@ -40,13 +40,17 @@ serve(async (req: Request) => {
     // Pass those fields and we create the lead automatically.
     let leadId: string | null = body.lead_id ?? null;
 
-    if (!leadId && body.location_id && body.visitor_name) {
+    // Always create a lead when we have a location, even if the chat bot did not
+    // capture a name. full_name is NOT NULL in the schema, so fall back to a floor.
+    if (!leadId && body.location_id) {
+      const visitorName = body.visitor_name
+        ?? (body.visitor_phone ? `Visitor ${body.visitor_phone}` : "Unknown Visitor");
       const { data: newLead } = await supabase
         .from("leads")
         .insert({
           location_id: body.location_id,
           source:      "Website Chat",
-          full_name:   body.visitor_name,
+          full_name:   visitorName,
           phone:       body.visitor_phone ?? null,
           email:       body.visitor_email ?? null,
           reason:      body.reason ?? null,
