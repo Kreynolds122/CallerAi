@@ -24,6 +24,8 @@ const TEAM_MEMBERS = [
   { id: "tm-5", name: "Lisa Thompson", role: "Receptionist", email: "lisa.t@recoverygroup.com" },
 ];
 
+const AILMENT_TYPES = ["Back/Spine","Neck","Shoulder","Knee","Hip","Foot/Ankle","Post-Surgical Rehab","Neurological","Other"] as const;
+
 // ─── Data Context ──────────────────────────────────────────────────────────────
 
 interface AppData {
@@ -573,7 +575,7 @@ function LeadDetailScreen({ leadId, onBack }: { leadId: string; onBack: () => vo
                         <span className="text-xs font-semibold text-foreground capitalize">{item.type}</span>
                         <span className="text-xs text-muted-foreground">{fmtDateTime(item.time)}</span>
                       </div>
-                      {item.type === "call" && <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{(item.data as Call).duration} min</span><OutcomeBadge outcome={(item.data as Call).outcome} /></div>}
+                      {item.type === "call" && <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{(item.data as Call).duration} min</span><OutcomeBadge outcome={(item.data as Call).outcome} />{(item.data as Call).ailmentType && <span className="text-xs text-muted-foreground">{(item.data as Call).ailmentType}</span>}</div>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{item.type === "call" ? (item.data as Call).summary : (item.data as Chat).summary}</p>
                     <TranscriptPanel text={item.type === "call" ? (item.data as Call).transcript : (item.data as Chat).transcript} open={openTranscripts.has(item.id)} onToggle={() => toggleTranscript(item.id)} />
@@ -619,23 +621,54 @@ function CallsScreen({ locId }: { locId: string }) {
   const [openTranscripts, setOpenTranscripts] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [ailmentFilter, setAilmentFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const filtered = useMemo(() => calls.filter(c => {
     if (locId !== "all" && c.locationId !== locId) return false;
     if (outcomeFilter !== "all" && c.outcome !== outcomeFilter) return false;
+    if (ailmentFilter !== "all" && c.ailmentType !== ailmentFilter) return false;
+    if (sourceFilter !== "all") { const lead = leads.find(l => l.id === c.leadId); if (lead?.source !== sourceFilter) return false; }
+    if (dateFrom && c.dateTime < dateFrom) return false;
+    if (dateTo && c.dateTime > dateTo + "T23:59:59Z") return false;
     if (search) { const lead = leads.find(l => l.id === c.leadId); const q = search.toLowerCase(); return lead?.fullName.toLowerCase().includes(q) || c.summary.toLowerCase().includes(q); }
     return true;
-  }).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [calls, leads, locId, outcomeFilter, search]);
+  }).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [calls, leads, locId, outcomeFilter, ailmentFilter, sourceFilter, dateFrom, dateTo, search]);
 
+  const hasActiveFilters = outcomeFilter !== "all" || ailmentFilter !== "all" || sourceFilter !== "all" || dateFrom || dateTo || search;
   const toggleTranscript = (id: string) => setOpenTranscripts(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl p-4 shadow-sm border border-border flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-48"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><input className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 placeholder:text-muted-foreground" placeholder="Search calls…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input className="w-full pl-9 pr-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 placeholder:text-muted-foreground" placeholder="Search calls…" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
         <select value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value)} className="px-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground">
-          <option value="all">All Outcomes</option><option value="Completed">Completed</option><option value="Voicemail">Voicemail</option><option value="No Answer">No Answer</option><option value="Failed">Failed</option>
+          <option value="all">All Outcomes</option>
+          {(["Completed","Voicemail","No Answer","Failed"] as CallOutcome[]).map(o => <option key={o} value={o}>{o}</option>)}
         </select>
+        <select value={ailmentFilter} onChange={e => setAilmentFilter(e.target.value)} className="px-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground">
+          <option value="all">All Ailments</option>
+          {AILMENT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="px-3 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground">
+          <option value="all">All Sources</option>
+          <option value="Phone">Phone</option>
+          <option value="Website Chat">Website Chat</option>
+        </select>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground whitespace-nowrap">From</label>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="px-2 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground" />
+          <label className="text-xs text-muted-foreground">To</label>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="px-2 py-2 text-sm bg-input-background rounded-lg border-0 outline-none focus:ring-2 focus:ring-accent/30 text-foreground" />
+        </div>
+        {hasActiveFilters && (
+          <button onClick={() => { setOutcomeFilter("all"); setAilmentFilter("all"); setSourceFilter("all"); setDateFrom(""); setDateTo(""); setSearch(""); }} className="text-xs text-accent hover:underline whitespace-nowrap">Clear filters</button>
+        )}
         <span className="text-sm text-muted-foreground ml-auto">{filtered.length} calls</span>
       </div>
       <div className="space-y-3">
@@ -645,7 +678,7 @@ function CallsScreen({ locId }: { locId: string }) {
           const lead = leads.find(l => l.id === call.leadId);
           return (
             <div key={call.id} className="bg-white rounded-xl p-5 shadow-sm border border-border">
-              <div className="flex items-center gap-2 flex-wrap"><Phone className="w-4 h-4 text-violet-500" /><span className="font-semibold text-foreground">{lead?.fullName ?? "Unknown caller"}</span><OutcomeBadge outcome={call.outcome} /><span className="text-xs text-muted-foreground ml-1">{call.dateTime ? fmtDateTime(call.dateTime) : "—"}</span><span className="text-xs text-muted-foreground">· {call.duration} min</span></div>
+              <div className="flex items-center gap-2 flex-wrap"><Phone className="w-4 h-4 text-violet-500" /><span className="font-semibold text-foreground">{lead?.fullName ?? "Unknown caller"}</span><OutcomeBadge outcome={call.outcome} /><span className="text-xs text-muted-foreground ml-1">{call.dateTime ? fmtDateTime(call.dateTime) : "—"}</span><span className="text-xs text-muted-foreground">· {call.duration} min</span><span className="text-xs text-muted-foreground">· {call.ailmentType ?? "—"}</span></div>
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{call.summary}</p>
               <TranscriptPanel text={call.transcript} open={openTranscripts.has(call.id)} onToggle={() => toggleTranscript(call.id)} />
             </div>

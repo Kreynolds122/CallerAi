@@ -34,6 +34,7 @@ export function transformCall(row: Record<string, unknown>) {
     dateTime: (row.date_time as string) ?? (row.created_at as string),
     duration: (row.duration_minutes as number) ?? 0,
     talkSeconds: row.talk_seconds as number | undefined,
+    ailmentType: row.ailment_type as string | undefined,
     outcome: row.outcome as "Completed" | "Voicemail" | "No Answer" | "Failed",
     transcript: (row.transcript as string) ?? "",
     summary: (row.summary as string) ?? "",

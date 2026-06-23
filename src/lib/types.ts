@@ -38,6 +38,7 @@ export interface Call {
   dateTime: string;
   duration: number;
   talkSeconds?: number;
+  ailmentType?: string;
   outcome: CallOutcome;
   transcript: string;
   summary: string;
