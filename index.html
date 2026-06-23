@@ -14,7 +14,32 @@
 
     <body>
       
-      <div id="root"></div>
+      <div id="root">
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#F0F5F9;font-family:Arial,Helvetica,sans-serif;">
+          <div style="width:100%;max-width:384px;background:#fff;border:1px solid rgba(13,27,42,.09);border-radius:24px;padding:32px;box-shadow:0 10px 25px rgba(15,42,68,.08);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;">
+              <div style="width:36px;height:36px;border-radius:14px;background:#2563EB;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">A</div>
+              <div>
+                <div style="font-weight:700;color:#0D1B2A;line-height:1;">Recovery Group</div>
+                <div style="font-size:12px;color:#6B7B8E;margin-top:4px;">Lead Management</div>
+              </div>
+            </div>
+            <h2 style="font-size:20px;line-height:1.3;margin:0 0 4px;color:#0D1B2A;">Staff Sign In</h2>
+            <p style="font-size:14px;line-height:1.5;margin:0 0 24px;color:#6B7B8E;">Sign in with your clinic team account.</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <label style="display:block;font-size:12px;font-weight:700;color:#6B7B8E;">
+                Email
+                <input type="email" placeholder="you@recoverygroup.com" style="margin-top:6px;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid rgba(13,27,42,.12);background:#EDF2F7;font-size:14px;outline:none;" />
+              </label>
+              <label style="display:block;font-size:12px;font-weight:700;color:#6B7B8E;">
+                Password
+                <input type="password" placeholder="••••••••" style="margin-top:6px;width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:1px solid rgba(13,27,42,.12);background:#EDF2F7;font-size:14px;outline:none;" />
+              </label>
+              <button type="button" style="width:100%;padding:12px 14px;border:none;border-radius:12px;background:#2563EB;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">Sign In</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <script type="module" src="/src/main.tsx"></script>
       
     </body>
