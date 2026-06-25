@@ -109,6 +109,11 @@ function SourceBadge({ source }: { source: LeadSource }) {
     ? <span className="inline-flex items-center gap-1 text-xs font-medium text-violet-700"><PhoneCall className="w-3 h-3" />Phone</span>
     : <span className="inline-flex items-center gap-1 text-xs font-medium text-teal-700"><MessageSquare className="w-3 h-3" />Chat</span>;
 }
+function SmsBadge({ smsStatus }: { smsStatus?: string }) {
+  if (smsStatus === "sent") return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">SMS sent</span>;
+  if (smsStatus === "pending") return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-200">SMS queued</span>;
+  return null;
+}
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
@@ -475,7 +480,7 @@ function LeadsScreen({ locId, onSelectLead, initialSearch = "" }: { locId: strin
                   <td className="px-5 py-3.5"><p className="font-semibold text-foreground group-hover:text-accent transition-colors">{lead.fullName}</p><p className="text-xs text-muted-foreground mt-0.5">{lead.phone}</p></td>
                   <td className="px-4 py-3.5"><SourceBadge source={lead.source} /></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">{locName(lead.locationId)}</td>
-                  <td className="px-4 py-3.5"><StatusBadge status={lead.status} /></td>
+                  <td className="px-4 py-3.5"><div className="flex items-center gap-1.5"><StatusBadge status={lead.status} /><SmsBadge smsStatus={lead.smsStatus} /></div></td>
                   <td className="px-4 py-3.5 hidden lg:table-cell"><span className="text-xs text-muted-foreground line-clamp-1 max-w-48">{lead.reason}</span></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">{fmt(lead.createdAt)}</td>
                   <td className="px-4 py-3.5 hidden xl:table-cell text-xs text-muted-foreground whitespace-nowrap">{lead.appointmentDateTime ? fmtDateTime(lead.appointmentDateTime) : <span className="text-slate-300">—</span>}</td>
@@ -540,6 +545,7 @@ function LeadDetailScreen({ leadId, onBack }: { leadId: string; onBack: () => vo
           <div className="flex items-center gap-2 mt-1 flex-wrap"><SourceBadge source={lead.source} /><span className="text-xs text-muted-foreground">{locName}</span><span className="text-xs text-muted-foreground">·</span><span className="text-xs text-muted-foreground">Created {fmt(lead.createdAt)}</span></div>
         </div>
         <StatusBadge status={status} />
+        <SmsBadge smsStatus={lead.smsStatus} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-4">

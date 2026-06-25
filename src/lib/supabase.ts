@@ -20,6 +20,7 @@ export function transformLead(row: Record<string, unknown>) {
     preferredTime: (row.preferred_time as string) ?? "",
     appointmentDateTime: (row.appointment_datetime as string | undefined),
     assignedTo: (row.assigned_to as string | undefined),
+    smsStatus: row.sms_status as string | undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
     notes: (row.notes as string) ?? "",
