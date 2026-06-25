@@ -27,6 +27,7 @@ export interface Lead {
   appointmentDateTime?: string;
   assignedTo?: string;
   smsStatus?: string;
+  newOrReturning?: string;
   createdAt: string;
   updatedAt: string;
   notes: string;

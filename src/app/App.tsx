@@ -114,6 +114,10 @@ function SmsBadge({ smsStatus }: { smsStatus?: string }) {
   if (smsStatus === "pending") return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-200">SMS queued</span>;
   return null;
 }
+function PatientTypeBadge({ newOrReturning }: { newOrReturning?: string }) {
+  if (newOrReturning === "returning") return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200">Returning</span>;
+  return null;
+}
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
@@ -480,7 +484,7 @@ function LeadsScreen({ locId, onSelectLead, initialSearch = "" }: { locId: strin
                   <td className="px-5 py-3.5"><p className="font-semibold text-foreground group-hover:text-accent transition-colors">{lead.fullName}</p><p className="text-xs text-muted-foreground mt-0.5">{lead.phone}</p></td>
                   <td className="px-4 py-3.5"><SourceBadge source={lead.source} /></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground">{locName(lead.locationId)}</td>
-                  <td className="px-4 py-3.5"><div className="flex items-center gap-1.5"><StatusBadge status={lead.status} /><SmsBadge smsStatus={lead.smsStatus} /></div></td>
+                  <td className="px-4 py-3.5"><div className="flex items-center gap-1.5"><StatusBadge status={lead.status} /><SmsBadge smsStatus={lead.smsStatus} /><PatientTypeBadge newOrReturning={lead.newOrReturning} /></div></td>
                   <td className="px-4 py-3.5 hidden lg:table-cell"><span className="text-xs text-muted-foreground line-clamp-1 max-w-48">{lead.reason}</span></td>
                   <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">{fmt(lead.createdAt)}</td>
                   <td className="px-4 py-3.5 hidden xl:table-cell text-xs text-muted-foreground whitespace-nowrap">{lead.appointmentDateTime ? fmtDateTime(lead.appointmentDateTime) : <span className="text-slate-300">—</span>}</td>
@@ -546,6 +550,7 @@ function LeadDetailScreen({ leadId, onBack }: { leadId: string; onBack: () => vo
         </div>
         <StatusBadge status={status} />
         <SmsBadge smsStatus={lead.smsStatus} />
+        <PatientTypeBadge newOrReturning={lead.newOrReturning} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 space-y-4">
