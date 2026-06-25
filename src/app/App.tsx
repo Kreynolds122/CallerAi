@@ -589,7 +589,7 @@ function LeadDetailScreen({ leadId, onBack }: { leadId: string; onBack: () => vo
                       {item.type === "call" && <div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{(item.data as Call).duration} min</span><OutcomeBadge outcome={(item.data as Call).outcome} />{(item.data as Call).ailmentType && <span className="text-xs text-muted-foreground">{(item.data as Call).ailmentType}</span>}</div>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{item.type === "call" ? (item.data as Call).summary : (item.data as Chat).summary}</p>
-                    <TranscriptPanel text={item.type === "call" ? (item.data as Call).transcript : (item.data as Chat).transcript} open={openTranscripts.has(item.id)} onToggle={() => toggleTranscript(item.id)} />
+                    {(() => { const t = item.type === "call" ? (item.data as Call).transcript : (item.data as Chat).transcript; return t ? <TranscriptPanel text={t} open={openTranscripts.has(item.id)} onToggle={() => toggleTranscript(item.id)} /> : null; })()}
                   </div>
                 ))}
               </div>
@@ -704,7 +704,6 @@ function CallsScreen({ locId }: { locId: string }) {
 
 function ChatsScreen({ locId }: { locId: string }) {
   const { chats, leads } = useData();
-  const [openTranscripts, setOpenTranscripts] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => chats.filter(c => {
@@ -712,8 +711,6 @@ function ChatsScreen({ locId }: { locId: string }) {
     if (search) { const lead = leads.find(l => l.id === c.leadId); const q = search.toLowerCase(); return lead?.fullName.toLowerCase().includes(q) || c.summary.toLowerCase().includes(q); }
     return true;
   }).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [chats, leads, locId, search]);
-
-  const toggleTranscript = (id: string) => setOpenTranscripts(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
     <div className="space-y-4">
@@ -730,7 +727,6 @@ function ChatsScreen({ locId }: { locId: string }) {
             <div key={chat.id} className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center gap-2 flex-wrap"><MessageSquare className="w-4 h-4 text-teal-500" /><span className="font-semibold text-foreground">{lead?.fullName ?? "Website visitor"}</span><span className="text-xs text-muted-foreground">· {chat.dateTime ? fmtDateTime(chat.dateTime) : "—"}</span></div>
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{chat.summary}</p>
-              <TranscriptPanel text={chat.transcript} open={openTranscripts.has(chat.id)} onToggle={() => toggleTranscript(chat.id)} />
             </div>
           );
         })}
